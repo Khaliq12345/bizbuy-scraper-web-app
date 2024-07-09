@@ -5,7 +5,7 @@ import ultraimport
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker, Query
 
-Saves = ultraimport('/media/khaliq/New Volume/Documents/Python Projects/khaliq/Upwork Projects/ruben-project/v2/model.py', 'Saved')
+Saves = ultraimport('./model.py', 'Saved')
 
 ui.add_head_html(
     """<meta name="viewport" content="width=device-width, initial-scale=1.0">"""
