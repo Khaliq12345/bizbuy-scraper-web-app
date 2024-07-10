@@ -78,6 +78,7 @@ class BuisnessPage:
     def toggle_order(self, col_type: str):
         self.filters = []
         self.page_num = 0
+        self.dialog.close()
         if col_type == 'profit_margin':
             self.order_by_cash_flow = None
             self.order_by_profit_margin = self.convert_yes_no(self.order_by_profit_margin)
@@ -199,12 +200,14 @@ class BuisnessPage:
     #Frontends       
  
     def header(self):
-        with ui.header().classes('bg-zinc-700'):
+        with ui.header().classes('bg-zinc-200'):
             with ui.row(align_items='center').classes('w-full justify-between items-center'):
                 with ui.column().classes('col-3 w-full'):
                     with ui.row().classes('justify-center w-full max-lg:hidden'):
-                        ui.button("Filter", on_click=lambda: self.right_drawer.toggle())
-                        ui.button("Show saved", on_click=lambda: ui.navigate.to('/saves'))
+                        ui.button("Filter", color='black',
+                        on_click=lambda: self.right_drawer.toggle()).props('outline')
+                        ui.button("Show saved", color='black',
+                        on_click=lambda: ui.navigate.to('/saves')).props('outline')
                     with ui.row().classes('justify-start w-full lg:hidden'):
                         with ui.button(icon='menu'):
                             with ui.menu():
@@ -213,13 +216,13 @@ class BuisnessPage:
                 ui.space()
                 with ui.column().classes('col w-full'):
                     with ui.row(align_items='center').classes('w-full justify-evenly'):
-                        with ui.column().classes('col-3'):
-                            with ui.row().classes('w-full justify-center lg:text-4xl text-sm outline'):
-                                ui.label(self.page_title)
-                        with ui.column().classes('col-3'):
-                            with ui.row().classes('w-full justify-center lg:text-4xl text-sm outline'):
+                        with ui.column().classes('col'):
+                            with ui.row().classes('w-full justify-center lg:text-4xl text-2xl font-serif'):
                                 with ui.link(target='/').classes('no-underline'):
-                                    ui.label('DATA VIZ').classes('text-white')
+                                    ui.label('DATA VIZ').classes('text-dark')
+                        with ui.column().classes('col-3'):
+                            with ui.row().classes('w-full justify-center lg:text-4xl text-2xl font-serif'):
+                                ui.label(self.page_title).classes('text-dark text-center')
 
     def filter_ui(self):
         with ui.row(wrap=False).classes('w-full justify-center my-10'):
@@ -244,11 +247,11 @@ class BuisnessPage:
                             self.validate_numbers(value, 'asking_multiple') else None).props('filled')
                     with ui.item():
                         with ui.item_section():
-                            ui.button("Order by profit margin", color='zinc-700',
+                            ui.button("Order by profit margin", color='zinc-700', icon='sort',
                             on_click=lambda: self.toggle_order("profit_margin")).props('outline')
                     with ui.item():
                         with ui.item_section():
-                            ui.button("Order by cash flow", color='zinc-700',
+                            ui.button("Order by cash flow", color='zinc-700', icon='sort',
                             on_click=lambda: self.toggle_order("cash_flow")).props('outline')
                 with ui.row().classes('w-full justify-center'):
                     ui.button("Submit", icon='start',
@@ -295,9 +298,9 @@ class BuisnessPage:
             with ui.row().classes('justify-center grid grid-cols-2 max-lg:grid-cols-1 md:container md:mx-auto'):
                 for idx, row in enumerate(objects):
                     buis_color = self.get_color_name(row)
-                    with ui.column().classes(f'border-8 border-{buis_color} mb-10'):
+                    with ui.column().classes(f'border-{buis_color} mb-10'):
                         with ui.row(align_items='stretch').classes('w-full justify-center'):
-                            with ui.list().props('separator bordered').classes('w-full'):
+                            with ui.list().props('separator').classes(f'w-full ring-4 ring-{buis_color}'):
                                 ui.item_label(row['name']).props('header').classes(f'text-bold text-black bg-{buis_color}')
                                 ui.separator()
                                 self.make_a_business_card(row)
