@@ -2,7 +2,7 @@ from nicegui import ui, app
 import nicegui
 import pandas as pd
 import ultraimport
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, select, desc
 from sqlalchemy.orm import sessionmaker, Query
 
 Saves = ultraimport('./model.py', 'Saved')
@@ -10,6 +10,16 @@ Saves = ultraimport('./model.py', 'Saved')
 ui.add_head_html(
     """<meta name="viewport" content="width=device-width, initial-scale=1.0">"""
 )
+
+excludes = [
+    "Reason for selling",
+    "Seller Financing Available",
+    "Seller Financed Payoff Timeline",
+    "Employees",
+    "Established",
+    "Profit Margin",
+    "Location",
+]
 
 mappers = [
     {"name": "Location", 'field': 'location'},
@@ -25,6 +35,7 @@ mappers = [
     {"name": "Real Estate", "field": "real_estate"},
     {"name": "Established", "field": 'established'},
     {"name": "Employees", "field": "employees"},
+    {"name": "Seller Financed Payoff Timeline", "field": "seller_financed_payoff_timeline"},
     {"name": "Seller Financing Available", 'field': 'seller_financing_available'},
     {"name": "Reason for selling", 'field': "reason_for_selling"},
 ]
@@ -38,20 +49,70 @@ class BuisnessPage:
         self.page_title = page_title
         self.asking_price = None
         self.cash_flow = None
+        self.asking_multiple = None
         self.filters = []
+        self.order_by_profit_margin = None
+        self.order_by_cash_flow = None
     
     #Backends
+    
+    def float_formatter(self, value):
+        try:
+            return f'${value:,}'
+        except ValueError:
+            return value
 
-    def load_objects(self):
-        session = self.new_session()
-        obj = select(self.model)
-        for f in self.filters:
-            obj = obj.filter(f)
-        obj = obj.order_by(self.model.color).offset(self.page_num*2).limit(2)    
+    def convert_yes_no(self, value):
+        if value == 'yes':
+            value = 'no'
+        else:
+            value = 'yes'
+        return value  
+
+    def save_obj_as_dict(self, session, obj):
         objects = session.execute(obj)
         objects_dicts = [o[0].__dict__ for o in objects]
         session.close()
         return objects_dicts
+    
+    def toggle_order(self, col_type: str):
+        self.filters = []
+        self.page_num = 0
+        if col_type == 'profit_margin':
+            self.order_by_cash_flow = None
+            self.order_by_profit_margin = self.convert_yes_no(self.order_by_profit_margin)
+        elif col_type == 'cash_flow':
+            self.order_by_profit_margin = None
+            self.order_by_cash_flow = self.convert_yes_no(self.order_by_cash_flow)
+        else:
+            pass
+        self.body.clear()
+        self.load_page_body()
+
+    def order_by_schema(self, schema_type: str, yes_or_no: str):
+        if yes_or_no == 'yes':
+            obj = select(self.model).order_by(desc(eval(schema_type)))
+        elif yes_or_no == 'no':
+            obj = select(self.model).order_by(eval(schema_type))
+        obj = obj.offset(self.page_num*2).limit(2)
+        return obj
+    
+    def load_objects(self):
+        session = self.new_session()
+        obj = select(self.model)
+        if self.order_by_profit_margin:
+            obj = self.order_by_schema("self.model.profit_margin", self.order_by_profit_margin)
+        elif self.order_by_cash_flow:
+            obj = self.order_by_schema("self.model.cash_flow", self.order_by_cash_flow)
+        else:
+            if len(self.filters) > 0:
+                for f in self.filters:
+                    obj = obj.filter(f)
+                    obj = obj.order_by(self.model.color).offset(self.page_num*2).limit(2)
+            else:
+                obj = obj.order_by(self.model.color).offset(self.page_num*2).limit(2)
+        obj_dict = self.save_obj_as_dict(session, obj)
+        return obj_dict
     
     def load_with_filters(self):
         self.dialog.close()
@@ -65,6 +126,10 @@ class BuisnessPage:
         if self.cash_flow:
             self.filters.append(
                 eval(f"""self.model.cash_flow <= {self.cash_flow}""")
+            )
+        if self.asking_multiple:
+            self.filters.append(
+                eval(f"""self.model.asking_multiple <= {self.asking_multiple}""")
             )
         if len(self.filters) == 0:
             pass
@@ -86,6 +151,9 @@ class BuisnessPage:
                 return True
             elif var == 'cash_flow':
                 self.cash_flow = float(value)
+                return True
+            elif var == 'asking_multiple':
+                self.asking_multiple = float(value)
                 return True
             
     def save_buisess(self, row: dict):
@@ -161,14 +229,27 @@ class BuisnessPage:
                     ui.separator()
                     with ui.item():
                         with ui.item_section():
-                            ui.number("Asking price", 
+                            ui.number("Asking price", min=1,
                             validation=lambda value: "Provide proper number" if not 
                             self.validate_numbers(value, 'asking') else None).props('filled')
                     with ui.item():
                         with ui.item_section():
-                            ui.number("Cash Flow", 
+                            ui.number("Cash Flow", min=1,
                             validation=lambda value: "Provide proper number" if not 
                             self.validate_numbers(value, 'cash_flow') else None).props('filled')
+                    with ui.item():
+                        with ui.item_section():
+                            ui.number("Asking Multiple", min=1,
+                            validation=lambda value: "Provide proper number" if not 
+                            self.validate_numbers(value, 'asking_multiple') else None).props('filled')
+                    with ui.item():
+                        with ui.item_section():
+                            ui.button("Order by profit margin", color='zinc-700',
+                            on_click=lambda: self.toggle_order("profit_margin")).props('outline')
+                    with ui.item():
+                        with ui.item_section():
+                            ui.button("Order by cash flow", color='zinc-700',
+                            on_click=lambda: self.toggle_order("cash_flow")).props('outline')
                 with ui.row().classes('w-full justify-center'):
                     ui.button("Submit", icon='start',
                     color='zinc-700 text-white', on_click=self.load_with_filters).props('flat')
@@ -195,7 +276,10 @@ class BuisnessPage:
                                         ui.label(row[mapper['field']])
                         else:
                             ui.item_label(mapper['name'])
-                            ui.item_label(row[mapper['field']])
+                            if mapper['name'] in excludes:
+                                ui.item_label(row[mapper['field']])
+                            else:
+                                ui.item_label(self.float_formatter(row[mapper['field']]))
         ui.separator().classes('my-2')
         with ui.element('div').classes('flex justify-around mb-2'):
             ui.button("Save Buisness", color='secondary', icon='save').props('outline').on_click(
@@ -222,6 +306,7 @@ class BuisnessPage:
         objects = self.load_objects()
         if len(objects) > 0:
             self.load_cards(objects)
+            self.more_button.enable()
         else:
             if self.more_button:
                 self.more_button.disable()
