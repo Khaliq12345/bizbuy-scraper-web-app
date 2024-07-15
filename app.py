@@ -32,4 +32,4 @@ async def saves_page():
 if len(sys.argv) > 1:
     asyncio.run(test_app())
 else:
-    ui.run(port=4000, title='DataViz', favicon="🌐")
+    ui.run(port=4000, title='DataViz', favicon="🌐", reconnect_timeout=60)
