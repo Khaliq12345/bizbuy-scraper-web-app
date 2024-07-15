@@ -212,17 +212,19 @@ class BuisnessPage:
             with ui.row(align_items='center').classes('w-full justify-between items-center'):
                 with ui.column().classes('col-3 w-full'):
                     with ui.row().classes('justify-center w-full max-lg:hidden'):
-                        ui.button("Filter", color='black',
-                        on_click=lambda: self.right_drawer.toggle()).props('outline')
-                        ui.button("Show saved", color='black',
-                        on_click=lambda: ui.navigate.to('/saves')).props('outline')
-                        ui.button("Update data", color='black',
-                        on_click=lambda: ui.navigate.to('/updates')).props('outline')
+                        with ui.button_group().props('outline').classes('rounded-lg'):
+                            ui.button("Filter",
+                            on_click=lambda: self.right_drawer.toggle()).props('outline color="black"')
+                            ui.button("Show saved",
+                            on_click=lambda: ui.navigate.to('/saves')).props('outline color="black"')
+                            ui.button("Update data",
+                            on_click=lambda: ui.navigate.to('/updates')).props('outline color="black"')
                     with ui.row().classes('justify-start w-full lg:hidden'):
                         with ui.button(icon='menu'):
                             with ui.menu():
                                 ui.menu_item("Filter", on_click=lambda: self.dialog.open())
                                 ui.menu_item("Show saved", on_click=lambda: ui.navigate.to('/saves'))
+                                ui.menu_item("Update data", on_click=lambda: ui.navigate.to('/updates'))
                 ui.space()
                 with ui.column().classes('col w-full'):
                     with ui.row(align_items='center').classes('w-full justify-evenly'):
@@ -314,7 +316,7 @@ class BuisnessPage:
                     buis_color = self.get_color_name(row)
                     with ui.column().classes(f'border-{buis_color} mb-10'):
                         with ui.row(align_items='stretch').classes('w-full justify-center'):
-                            with ui.list().props('separator').classes(f'w-full ring-4 ring-{buis_color}'):
+                            with ui.list().props('separator').classes(f'w-full ring-4 ring-{buis_color} rounded-lg'):
                                 ui.item_label(row['name']).props('header').classes(f'text-bold text-black bg-{buis_color}')
                                 ui.separator()
                                 self.make_a_business_card(row)

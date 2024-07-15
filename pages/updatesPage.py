@@ -58,7 +58,7 @@ class UpdatePage(BuisnessPage):
         self.page_title = "Updates"
         self.header()
         with ui.row().classes('w-full justify-center') as self.update_page_body:
-            with ui.card().props('flat bordered').classes('border-8'):
+            with ui.card().props('flat').classes('rounded-lg outline outline-offset-2 outline-dark-500'):
                 with ui.card_section().classes('w-full'):
                     with ui.row().classes('w-full justify-center'):
                         ui.label("OPTIONS").classes('text-h5')
@@ -71,7 +71,7 @@ class UpdatePage(BuisnessPage):
                     with ui.row().classes('justify-center w-full'):
                         ui.button("Run scraper").on_click(
                             lambda: self.scraper(self.page_num)
-                        )
+                        ).props('outline color="black"')
                         self.log_element = ui.row().classes('w-full justify-center')
                         self.label = ui.label("Page -> 0").bind_text(self, target_name='page_str')
                 
