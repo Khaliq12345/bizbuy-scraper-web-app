@@ -29,4 +29,4 @@ async def update_page():
     await update_page.main()
         
 
-ui.run(port=4000)
+ui.run(port=4000, title='DataViz', favicon="🌐")
