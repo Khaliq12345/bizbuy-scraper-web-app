@@ -28,11 +28,6 @@ async def saves_page():
     await home_p.main()
     with ui.footer(fixed=False).classes('bg-zinc-700'):
         ui.label("Footer")
-
-@ui.page('/updates')
-async def update_page():
-    update_page = updatesPage.UpdatePage()
-    await update_page.main()
         
 if len(sys.argv) > 1:
     asyncio.run(test_app())

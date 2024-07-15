@@ -217,14 +217,11 @@ class BuisnessPage:
                             on_click=lambda: self.right_drawer.toggle()).props('outline color="black"')
                             ui.button("Show saved",
                             on_click=lambda: ui.navigate.to('/saves')).props('outline color="black"')
-                            ui.button("Update data",
-                            on_click=lambda: ui.navigate.to('/updates')).props('outline color="black"')
                     with ui.row().classes('justify-start w-full lg:hidden'):
                         with ui.button(icon='menu'):
                             with ui.menu():
                                 ui.menu_item("Filter", on_click=lambda: self.dialog.open())
                                 ui.menu_item("Show saved", on_click=lambda: ui.navigate.to('/saves'))
-                                ui.menu_item("Update data", on_click=lambda: ui.navigate.to('/updates'))
                 ui.space()
                 with ui.column().classes('col w-full'):
                     with ui.row(align_items='center').classes('w-full justify-evenly'):
