@@ -53,15 +53,14 @@ async def s_engine(page_num: int, db):
         print(f'Total links: {len(buis_links)}')
         await detailScraper.engine(buis_links, db)
 
-# async def main():
-#     page_num = 28
-#     while db.is_next:
-#         await s_engine(page_num)
-#         page_num += 1
+async def main():
+    db = DB()
+    page_num = 28
+    while db.is_next:
+        await s_engine(page_num, db)
+        page_num += 1
 
-#     t = Thread(target=save_data)
-#     t.start()
-#     print("DONE!")
+    save_data(db.buis_infos)
         
 # if __name__ == '__main__':
 #     asyncio.run(main())

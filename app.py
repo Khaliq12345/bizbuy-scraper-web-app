@@ -6,9 +6,12 @@ current_dir = os.getcwd()
 sys.path.append(f'{current_dir}/pages')
 sys.path.append(f'{current_dir}/bot')
 from pages import home, updatesPage
+from bot import bizscraper
+import asyncio
 
-def test_app():
-    print("Hello")
+async def test_app():
+    await bizscraper.main()
+    print("Scraping DONE!")
 
 @ui.page('/')
 async def home_page():
@@ -32,6 +35,6 @@ async def update_page():
     await update_page.main()
         
 if len(sys.argv) > 1:
-    test_app()
+    asyncio.run(test_app())
 else:
     ui.run(port=4000, title='DataViz', favicon="🌐")
