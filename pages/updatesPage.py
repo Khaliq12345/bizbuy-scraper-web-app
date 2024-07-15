@@ -3,6 +3,9 @@ from threading import Thread
 from bot import bizscraper
 import asyncio
 from home import BuisnessPage
+import pandas as pd
+from sqlalchemy import create_engine
+import config
 
 class UpdatePage(BuisnessPage):
     def __init__(self):
@@ -10,6 +13,23 @@ class UpdatePage(BuisnessPage):
         self.buis_infos = []
         self.is_next = True
         self.page_str = None
+    
+    def save_data(self, buis_infos):
+        try:
+            df = pd.DataFrame(buis_infos)
+            engine = create_engine(
+                config.db_sync_url,
+            )
+            with engine.begin() as conn:
+                df.to_sql(
+                    name='orig',
+                    con=conn, index=False, if_exists='replace'
+                )
+                print("Data Saved!")
+                self.spinner.visible = False
+                self.page_str = f'Completed'
+        except Exception as e:
+            print(e)
 
     async def scraper(self):
         self.spinner.visible = True
@@ -22,11 +42,8 @@ class UpdatePage(BuisnessPage):
             self.is_next = False
             await asyncio.sleep(2)
 
-        t = Thread(target=bizscraper.save_data, args=(self.buis_infos,))
+        t = Thread(target=self.save_data, args=(self.buis_infos,))
         t.start()
-        print("DONE!")
-        self.spinner.visible = False
-        self.page_str = f'Completed'
 
     async def main(self):
         self.page_title = "Updates"

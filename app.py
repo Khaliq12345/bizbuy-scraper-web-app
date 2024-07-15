@@ -5,8 +5,12 @@ import os
 current_dir = os.getcwd()
 sys.path.append(f'{current_dir}/pages')
 sys.path.append(f'{current_dir}/bot')
-
 from pages import home, updatesPage
+#from sqlalchemy import create_engine
+import config
+
+# engine = create_engine(config.db_sync_url)
+# Base.metadata.create_all(bind=engine)
 
 @ui.page('/')
 async def home_page():

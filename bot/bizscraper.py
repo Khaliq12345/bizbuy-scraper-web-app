@@ -19,7 +19,7 @@ def save_data(buis_infos):
     try:
         df = pd.DataFrame(buis_infos)
         engine = create_engine(
-           config.db_url,
+           config.db_sync_url,
         )
         with engine.begin() as conn:
             df.to_sql(
@@ -30,7 +30,6 @@ def save_data(buis_infos):
     except Exception as e:
         print(e)
         
-
 #parsing data-----------------
 def division_error(a, b):
     try:
