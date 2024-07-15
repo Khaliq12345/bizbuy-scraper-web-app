@@ -41,7 +41,6 @@ class UpdatePage(BuisnessPage):
                 self.page_str = f'Page -> {page_num}'
                 await bizscraper.s_engine(page_num, self)
                 page_num += 1
-                self.is_next = False
                 await asyncio.sleep(2)
 
             t = Thread(target=self.save_data, args=(self.buis_infos,))

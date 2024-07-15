@@ -28,6 +28,7 @@ class Buisness(Base):
     seller_financed_payoff_timeline = Column(Text, default='Not available')
     color = Column(Integer, default=2)
     color_name = Column(Text, default='tertiary')
+    buis_link = Column(Text, default='Not available')
     
 class Saved(Base):
     __tablename__ = 'saved'
@@ -54,3 +55,4 @@ class Saved(Base):
     seller_financed_payoff_timeline = Column(Text, default='Not available')
     color = Column(Integer, default=2)
     color_name = Column(Text, default='tertiary')
+    buis_link = Column(Text, default='Not available')

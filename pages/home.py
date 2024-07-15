@@ -317,7 +317,8 @@ class BuisnessPage:
                     with ui.column().classes(f'border-{buis_color} mb-10'):
                         with ui.row(align_items='stretch').classes('w-full justify-center'):
                             with ui.list().props('separator').classes(f'w-full ring-4 ring-{buis_color} rounded-lg'):
-                                ui.item_label(row['name']).props('header').classes(f'text-bold text-black bg-{buis_color}')
+                                with ui.link(target=row['buis_link'], new_tab=True).classes('no-underline'):
+                                    ui.item_label(row['name']).props('header').classes(f'text-bold text-black bg-{buis_color}')
                                 ui.separator()
                                 self.make_a_business_card(row)
 

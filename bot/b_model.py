@@ -19,6 +19,7 @@ class Buisness(BaseModel):
     profit_margin_orig: float
     gross_margin: float
     asking_multiple: float
+    buis_link: str
 
     @computed_field
     def profit_margin(self) -> str:
