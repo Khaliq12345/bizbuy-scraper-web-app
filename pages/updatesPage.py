@@ -13,6 +13,7 @@ class UpdatePage(BuisnessPage):
         self.buis_infos = []
         self.is_next = True
         self.page_str = None
+        self.page_num = 1
     
     def save_data(self, buis_infos):
         try:
@@ -31,35 +32,45 @@ class UpdatePage(BuisnessPage):
         except Exception as e:
             print(e)
 
-    async def scraper(self):
+    async def scraper(self, page_num):
         self.spinner.visible = True
-        page_num = 28
-        while self.is_next:
-            print(f'Page: {page_num}')
-            self.page_str = f'Page -> {page_num}'
-            await bizscraper.s_engine(page_num, self)
-            page_num += 1
-            self.is_next = False
-            await asyncio.sleep(2)
+        page_num = int(page_num)
+        try:
+            while self.is_next:
+                print(f'Page: {page_num}')
+                self.page_str = f'Page -> {page_num}'
+                await bizscraper.s_engine(page_num, self)
+                page_num += 1
+                self.is_next = False
+                await asyncio.sleep(2)
 
-        t = Thread(target=self.save_data, args=(self.buis_infos,))
-        t.start()
+            t = Thread(target=self.save_data, args=(self.buis_infos,))
+            t.start()
+        except Exception as e:
+            with self.update_page_body:
+                ui.notification(
+                f"""Error while scraping:
+                Message: {e}""", type='negative', position='top', multi_line=True)
+        finally:
+            self.spinner.visible = False
 
     async def main(self):
         self.page_title = "Updates"
         self.header()
-        with ui.row().classes('w-full justify-center'):
+        with ui.row().classes('w-full justify-center') as self.update_page_body:
             with ui.card().props('flat bordered').classes('border-8'):
                 with ui.card_section().classes('w-full'):
                     with ui.row().classes('w-full justify-center'):
                         ui.label("OPTIONS").classes('text-h5')
                 with ui.card_actions().classes('w-full'):
                     with ui.row().classes('w-full justify-center'):
-                        ui.input("Location")
+                        i = ui.number("Start Page Number", value=self.page_num).bind_value(
+                            target_object=self, target_name='page_num'
+                        )
                 with ui.card_actions().classes('w-full'):
                     with ui.row().classes('justify-center w-full'):
                         ui.button("Run scraper").on_click(
-                            lambda: self.scraper()
+                            lambda: self.scraper(self.page_num)
                         )
                         self.log_element = ui.row().classes('w-full justify-center')
                         self.label = ui.label("Page -> 0").bind_text(self, target_name='page_str')
