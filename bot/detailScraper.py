@@ -103,15 +103,18 @@ async def log_requests(resquest: httpx.Request):
 logger = {"response": [log_response], "request": [log_requests]}
 
 async def make_request(url: str, db):
-    async with httpx.AsyncClient(timeout=None, event_hooks=logger) as client:
-        payload = {
-            'api_key': config.scraper_api, 
-            'url': url}
-        response = await client.get("https://api.scraperapi.com/", params=payload)
-        if response.status_code == 200:
-            soup = HTMLParser(response.text)
-            info = parse_buis_detail_page(soup, url)
-            db.buis_infos.append(info)
+    try:
+        async with httpx.AsyncClient(timeout=None, event_hooks=logger) as client:
+            payload = {
+                'api_key': config.scraper_api, 
+                'url': url}
+            response = await client.get("https://api.scraperapi.com/", params=payload)
+            if response.status_code == 200:
+                soup = HTMLParser(response.text)
+                info = parse_buis_detail_page(soup, url)
+                db.buis_infos.append(info)
+    except:
+        pass
         
 async def engine(urls: list, db):
     batches = split_urls_into_batches(urls)
