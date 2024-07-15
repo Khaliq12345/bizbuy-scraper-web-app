@@ -55,7 +55,7 @@ async def s_engine(page_num: int, db):
 
 async def main():
     db = DB()
-    page_num = 28
+    page_num = 1
     while db.is_next:
         await s_engine(page_num, db)
         page_num += 1
