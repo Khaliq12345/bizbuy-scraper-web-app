@@ -1,22 +1,33 @@
 from nicegui import ui
-import ultraimport
 from model import Buisness, Saved
-home = ultraimport('pages/home.py')
+import sys
+import os
+current_dir = os.getcwd()
+sys.path.append(f'{current_dir}/pages')
+sys.path.append(f'{current_dir}/bot')
+
+from pages import home, updatesPage
 
 @ui.page('/')
-def home_page():
+async def home_page():
     home_p = home.BuisnessPage(Buisness, 'All Buisness')
     home_p.header()
-    home_p.main()
+    await home_p.main()
     with ui.footer(fixed=False).classes('bg-zinc-700'):
         ui.label("Footer")
 
 @ui.page('/saves')
-def saves_page():
+async def saves_page():
     home_p = home.BuisnessPage(Saved, 'All Saved')
     home_p.header()
-    home_p.main()
+    await home_p.main()
     with ui.footer(fixed=False).classes('bg-zinc-700'):
         ui.label("Footer")
+
+@ui.page('/updates')
+async def update_page():
+    update_page = updatesPage.UpdatePage()
+    await update_page.main()
+        
 
 ui.run(port=4000)

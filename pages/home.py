@@ -1,11 +1,11 @@
 from nicegui import ui, app
-import nicegui
-import pandas as pd
-import ultraimport
-from sqlalchemy import create_engine, select, desc
-from sqlalchemy.orm import sessionmaker, Query
+import asyncio
+from sqlalchemy import select, desc, delete
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from model import Saved
+import config
 
-Saves = ultraimport('./model.py', 'Saved')
 
 ui.add_head_html(
     """<meta name="viewport" content="width=device-width, initial-scale=1.0">"""
@@ -69,13 +69,12 @@ class BuisnessPage:
             value = 'yes'
         return value  
 
-    def save_obj_as_dict(self, session, obj):
-        objects = session.execute(obj)
+    async def save_obj_as_dict(self, session, obj):
+        objects = await session.execute(obj)
         objects_dicts = [o[0].__dict__ for o in objects]
-        session.close()
         return objects_dicts
     
-    def toggle_order(self, col_type: str):
+    async def toggle_order(self, col_type: str):
         self.filters = []
         self.page_num = 0
         self.dialog.close()
@@ -88,7 +87,7 @@ class BuisnessPage:
         else:
             pass
         self.body.clear()
-        self.load_page_body()
+        asyncio.create_task(self.load_page_body())
 
     def order_by_schema(self, schema_type: str, yes_or_no: str):
         if yes_or_no == 'yes':
@@ -98,21 +97,22 @@ class BuisnessPage:
         obj = obj.offset(self.page_num*2).limit(2)
         return obj
     
-    def load_objects(self):
-        session = self.new_session()
-        obj = select(self.model)
-        if self.order_by_profit_margin:
-            obj = self.order_by_schema("self.model.profit_margin", self.order_by_profit_margin)
-        elif self.order_by_cash_flow:
-            obj = self.order_by_schema("self.model.cash_flow", self.order_by_cash_flow)
-        else:
-            if len(self.filters) > 0:
-                for f in self.filters:
-                    obj = obj.filter(f)
-                    obj = obj.order_by(self.model.color).offset(self.page_num*2).limit(2)
+    async def load_objects(self):
+        async_session = await self.new_session()
+        async with async_session() as session:
+            obj = select(self.model)
+            if self.order_by_profit_margin:
+                obj = self.order_by_schema("self.model.profit_margin", self.order_by_profit_margin)
+            elif self.order_by_cash_flow:
+                obj = self.order_by_schema("self.model.cash_flow", self.order_by_cash_flow)
             else:
-                obj = obj.order_by(self.model.color).offset(self.page_num*2).limit(2)
-        obj_dict = self.save_obj_as_dict(session, obj)
+                if len(self.filters) > 0:
+                    for f in self.filters:
+                        obj = obj.filter(f)
+                        obj = obj.order_by(self.model.color).offset(self.page_num*20).limit(20)
+                else:
+                    obj = obj.order_by(self.model.color).offset(self.page_num*20).limit(20)
+            obj_dict = await self.save_obj_as_dict(session, obj)
         return obj_dict
     
     def load_with_filters(self):
@@ -136,7 +136,7 @@ class BuisnessPage:
             pass
         else:
             self.body.clear()
-            self.load_page_body()
+            asyncio.create_task(self.load_page_body())
 
     def validate_numbers(self, value: str|None, var: str):
         if value == None:
@@ -156,37 +156,45 @@ class BuisnessPage:
             elif var == 'asking_multiple':
                 self.asking_multiple = float(value)
                 return True
-            
-    def save_buisess(self, row: dict):
+    
+    async def save_buisess(self, row: dict):
+        self.spinner.visible = True
         try:
             del row['_sa_instance_state']
-            session = self.new_session()
-            s1 = Saves(**row)
-            session.add(s1)
-            session.commit()
-            session.close()
+            async_session = await self.new_session()
+            async with async_session() as session:
+                s1 = Saved(**row)
+                async with session.begin():
+                    session.add(s1)
+                await session.commit()
             ui.notification(f"{row['name']} Saved", 
             close_button=True, timeout=3)
-        except:
-            pass
-
-    def remove_buisess(self, row: dict):
+        except Exception as e:
+            print(e)
+        finally:
+            self.spinner.visible = False
+            
+    async def remove_buisess(self, row: dict):
+        self.spinner.visible = True
         try:
             del row['_sa_instance_state']
-            session = self.new_session()
-            ds = session.query(Saves)
-            ds.filter(Saves.buis_id == row['buis_id']).delete()
-            session.commit()
-            session.close()
+            async_session = await self.new_session()
+            async with async_session() as session:
+                del_stm = delete(self.model).where(self.model.buis_id == row['buis_id'])
+                await session.execute(del_stm)
+                await session.commit()
             ui.navigate.reload() 
-        except:
+        except Exception as e:
+            print(e)
             pass
+        finally:
+            self.spinner.visible = False
     
-    def new_session(self):
-        engine = create_engine('sqlite:///db.sqlite3')
-        Session = sessionmaker(bind=engine)
-        session = Session()
-        return session
+    async def new_session(self):
+        engine = create_async_engine(config.db_url)
+        async_session = sessionmaker(bind=engine, class_=AsyncSession)
+        #session = Session()
+        return async_session
 
     def get_color_name(self, row):
         match row['color_name']:
@@ -197,7 +205,7 @@ class BuisnessPage:
             case 'danger':
                 return 'red-400'
     
-    #Frontends       
+    #Frontends
  
     def header(self):
         with ui.header().classes('bg-zinc-200'):
@@ -208,6 +216,8 @@ class BuisnessPage:
                         on_click=lambda: self.right_drawer.toggle()).props('outline')
                         ui.button("Show saved", color='black',
                         on_click=lambda: ui.navigate.to('/saves')).props('outline')
+                        ui.button("Update data", color='black',
+                        on_click=lambda: ui.navigate.to('/updates')).props('outline')
                     with ui.row().classes('justify-start w-full lg:hidden'):
                         with ui.button(icon='menu'):
                             with ui.menu():
@@ -220,9 +230,13 @@ class BuisnessPage:
                             with ui.row().classes('w-full justify-center lg:text-4xl text-2xl font-serif'):
                                 with ui.link(target='/').classes('no-underline'):
                                     ui.label('DATA VIZ').classes('text-dark')
-                        with ui.column().classes('col-3'):
+                        with ui.column().classes('col'):
                             with ui.row().classes('w-full justify-center lg:text-4xl text-2xl font-serif'):
                                 ui.label(self.page_title).classes('text-dark text-center')
+                        with ui.column().classes('col-1'):
+                            with ui.row().classes('w-full justify-center'):
+                                self.spinner = ui.spinner(size='lg')
+                                self.spinner.visible = False
 
     def filter_ui(self):
         with ui.row(wrap=False).classes('w-full justify-center my-10'):
@@ -305,26 +319,30 @@ class BuisnessPage:
                                 ui.separator()
                                 self.make_a_business_card(row)
 
-    def load_page_body(self):
-        objects = self.load_objects()
+    async def load_page_body(self):
+        self.spinner.visible = True
+        objects = await self.load_objects()
         if len(objects) > 0:
             self.load_cards(objects)
             self.more_button.enable()
         else:
             if self.more_button:
                 self.more_button.disable()
-    
-    def handle_pagination(self):
+        self.spinner.visible = False
+        print("DONE!")
+        
+    async def handle_pagination(self):
         self.page_num += 1
-        self.load_page_body()
+        await self.load_page_body()
 
-    def main(self):
+    async def main(self):
         self.body = ui.element('body').classes('font-mono')
         self.large_screen_drawer()
         self.small_screen_dialog()
         with ui.row().classes('justify-center w-full'):
             self.more_button = ui.button("Load more", 
                 on_click=lambda: self.handle_pagination()).classes('sticky bottom-0 flat')
-        self.load_page_body()
+            
+        asyncio.create_task(self.load_page_body())
 
        
