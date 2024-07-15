@@ -7,6 +7,9 @@ sys.path.append(f'{current_dir}/pages')
 sys.path.append(f'{current_dir}/bot')
 from pages import home, updatesPage
 
+def test_app():
+    print("Hello")
+
 @ui.page('/')
 async def home_page():
     home_p = home.BuisnessPage(Buisness, 'All Buisness')
@@ -28,5 +31,7 @@ async def update_page():
     update_page = updatesPage.UpdatePage()
     await update_page.main()
         
-
-ui.run(port=4000, title='DataViz', favicon="🌐")
+if len(sys.argv) > 1:
+    test_app()
+else:
+    ui.run(port=4000, title='DataViz', favicon="🌐")
