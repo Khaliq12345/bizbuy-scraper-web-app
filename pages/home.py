@@ -94,7 +94,7 @@ class BuisnessPage:
             obj = select(self.model).order_by(desc(eval(schema_type)))
         elif yes_or_no == 'no':
             obj = select(self.model).order_by(eval(schema_type))
-        obj = obj.offset(self.page_num*2).limit(2)
+        obj = obj.offset(self.page_num*20).limit(20)
         return obj
     
     async def load_objects(self):
