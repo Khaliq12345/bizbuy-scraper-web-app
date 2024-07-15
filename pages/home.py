@@ -329,7 +329,6 @@ class BuisnessPage:
             if self.more_button:
                 self.more_button.disable()
         self.spinner.visible = False
-        print("DONE!")
         
     async def handle_pagination(self):
         self.page_num += 1
