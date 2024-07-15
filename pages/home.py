@@ -1,4 +1,4 @@
-from nicegui import ui, app
+from nicegui import ui
 import asyncio
 from sqlalchemy import select, desc, delete
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession

@@ -5,7 +5,7 @@ import os
 current_dir = os.getcwd()
 sys.path.append(f'{current_dir}/pages')
 sys.path.append(f'{current_dir}/bot')
-from pages import home, updatesPage
+from pages import home
 from bot import bizscraper
 import asyncio
 
