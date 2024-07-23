@@ -4,6 +4,14 @@ from selectolax.parser import HTMLParser
 from urllib.parse import urljoin
 from sqlalchemy import create_engine
 import config
+import asyncio
+
+states = [
+    'new-jersey',
+    'colorado',
+    'new-york',
+    'texas'
+]
 
 class DB:
     buis_links = []
@@ -41,9 +49,9 @@ def get_all_links(soup: HTMLParser):
             pass
     return b_links
 
-async def s_engine(page_num: int, db):
-    print(f'Page: {page_num}')
-    payload = { 'api_key': config.scraper_api, 'url': f'https://www.bizbuysell.com/colorado-businesses-for-sale/{page_num}' }
+async def s_engine(page_num: int, state: str, db):
+    print(f'Page: {page_num} | State: {state}')
+    payload = { 'api_key': config.scraper_api, 'url': f'https://www.bizbuysell.com/{state}-businesses-for-sale/{page_num}' }
     async with httpx.AsyncClient(timeout=None) as client:
         r = await client.get('https://api.scraperapi.com/', params=payload, timeout=None)
         soup = HTMLParser(r.text)
@@ -51,19 +59,20 @@ async def s_engine(page_num: int, db):
             db.is_next = False
         buis_links = get_all_links(soup)
         print(f'Total links: {len(buis_links)}')
-        await detailScraper.engine(buis_links, db)
+        await detailScraper.engine(buis_links, state, db)
 
 async def main():
     db = DB()
-    page_num = 1
-    while db.is_next:
-        await s_engine(page_num, db)
-        page_num += 1
+    for state in states:
+        page_num = 1
+        while db.is_next:
+            await s_engine(page_num, state, db)
+            page_num += 1
 
     save_data(db.buis_infos)
         
-# if __name__ == '__main__':
-#     asyncio.run(main())
+if __name__ == '__main__':
+    asyncio.run(main())
 
     
 

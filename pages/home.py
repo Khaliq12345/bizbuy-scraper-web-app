@@ -6,7 +6,6 @@ from sqlalchemy.orm import sessionmaker
 from model import Saved
 import config
 
-
 ui.add_head_html(
     """<meta name="viewport" content="width=device-width, initial-scale=1.0">"""
 )
@@ -22,7 +21,7 @@ excludes = [
 ]
 
 mappers = [
-    {"name": "Location", 'field': 'location'},
+    {"name": "State", 'field': 'location'},
     {"name": "Asking Price", 'field': 'asking_price'},
     {"name": "Cash Flow", 'field': 'cash_flow'},
     {"name": "Gross Revenue", 'field': 'gross_revenue'},
@@ -40,6 +39,13 @@ mappers = [
     {"name": "Reason for selling", 'field': "reason_for_selling"},
 ]
 
+filters_mappers = [
+    {"name": "Asking price", "field": "asking", 'type': "number"},
+    {"name": "Cash Flow", "field": "cash_flow", 'type': "number"},
+    {"name": "Asking Multiple", "field": "asking_multiple", 'type': "number"},
+    {"name": "Order by profit margin", "field": "profit_margin", 'type': "toggle"},
+    {"name": "Order by cash flow", "field": "cash_flow", 'type': "toggle"},
+]
 
 class BuisnessPage:
     def __init__(self, model, page_title):
@@ -53,6 +59,7 @@ class BuisnessPage:
         self.filters = []
         self.order_by_profit_margin = None
         self.order_by_cash_flow = None
+        self.state = None
     
     #Backends
     
@@ -131,6 +138,10 @@ class BuisnessPage:
         if self.asking_multiple:
             self.filters.append(
                 eval(f"""self.model.asking_multiple <= {self.asking_multiple}""")
+            )
+        if self.state:
+            self.filters.append(
+                eval(f"""self.model.location == '{self.state}'""")
             )
         if len(self.filters) == 0:
             pass
@@ -243,29 +254,25 @@ class BuisnessPage:
                 with ui.list().props('bordered separator'):
                     ui.item_label('Filters').props('header').classes('text-bold text-h6 flex justify-center')
                     ui.separator()
+                    for fm in filters_mappers:
+                        if fm['type'] == 'number':      
+                            with ui.item():
+                                with ui.item_section():
+                                    ui.number(fm['name'], min=1,
+                                    validation=lambda value: "Provide proper number" if not 
+                                    self.validate_numbers(value, fm['field']) else None).props('filled')
+                        elif fm['type'] == 'toggle':
+                            with ui.item():
+                                with ui.item_section():
+                                    ui.button(fm['name'], color='zinc-700', icon='sort',
+                                    on_click=lambda: self.toggle_order(fm['field'])).props('outline')
                     with ui.item():
                         with ui.item_section():
-                            ui.number("Asking price", min=1,
-                            validation=lambda value: "Provide proper number" if not 
-                            self.validate_numbers(value, 'asking') else None).props('filled')
-                    with ui.item():
-                        with ui.item_section():
-                            ui.number("Cash Flow", min=1,
-                            validation=lambda value: "Provide proper number" if not 
-                            self.validate_numbers(value, 'cash_flow') else None).props('filled')
-                    with ui.item():
-                        with ui.item_section():
-                            ui.number("Asking Multiple", min=1,
-                            validation=lambda value: "Provide proper number" if not 
-                            self.validate_numbers(value, 'asking_multiple') else None).props('filled')
-                    with ui.item():
-                        with ui.item_section():
-                            ui.button("Order by profit margin", color='zinc-700', icon='sort',
-                            on_click=lambda: self.toggle_order("profit_margin")).props('outline')
-                    with ui.item():
-                        with ui.item_section():
-                            ui.button("Order by cash flow", color='zinc-700', icon='sort',
-                            on_click=lambda: self.toggle_order("cash_flow")).props('outline')
+                            ui.select(
+                                options=["Texas", "New Jersey", "Colorado", 'New York'],
+                                label="Select State",
+                            ).bind_value(self, 'state')
+                            
                 with ui.row().classes('w-full justify-center'):
                     ui.button("Submit", icon='start',
                     color='zinc-700 text-white', on_click=self.load_with_filters).props('flat')

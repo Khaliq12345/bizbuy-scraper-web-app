@@ -45,7 +45,7 @@ def get_spec_from_dd(dds: list[HTMLParser], dts: list[HTMLParser], info:str, def
                 return default
     return default
 
-def parse_buis_detail_page(soup: HTMLParser, url):
+def parse_buis_detail_page(soup: HTMLParser, url: str, state: str):
     specs = soup.css('p.m-listing-row')
     dds, dts = soup.css('dd'), soup.css('dt')
     asking_price = get_spec_info(specs, 'Asking Price:', 0)
@@ -66,10 +66,11 @@ def parse_buis_detail_page(soup: HTMLParser, url):
     profit_margin_orig = division_error(cash_flow, gross_revenue)
     gross_margin = division_error(cogs, gross_revenue)
     asking_multiple = division_error(asking_price, cash_flow)
+    state = state.replace('-', ' ').title()
     info = {
         'buis_id': create_uuid_from_string(name).hex,
         'name': name,
-        'location': 'Colorado',
+        'location': state,
         'asking_price': asking_price,
         'cash_flow': cash_flow,
         'gross_revenue': gross_revenue,
@@ -102,7 +103,7 @@ async def log_requests(resquest: httpx.Request):
     
 logger = {"response": [log_response], "request": [log_requests]}
 
-async def make_request(url: str, db):
+async def make_request(url: str, state, db):
     try:
         async with httpx.AsyncClient(timeout=None, event_hooks=logger) as client:
             payload = {
@@ -111,18 +112,19 @@ async def make_request(url: str, db):
             response = await client.get("https://api.scraperapi.com/", params=payload)
             if response.status_code == 200:
                 soup = HTMLParser(response.text)
-                info = parse_buis_detail_page(soup, url)
+                info = parse_buis_detail_page(soup, url, state)
                 db.buis_infos.append(info)
-    except:
+    except Exception as e:
+        print(e)
         pass
         
-async def engine(urls: list, db):
+async def engine(urls: list, state, db):
     batches = split_urls_into_batches(urls)
     for batch in list(batches):
         tasks = []
         for url in batch:
             tasks.append(
-                make_request(url, db)
+                make_request(url, state, db)
             )
         await asyncio.gather(*tasks)
         
