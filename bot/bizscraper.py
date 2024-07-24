@@ -62,8 +62,8 @@ async def s_engine(page_num: int, state: str, db):
         await detailScraper.engine(buis_links, state, db)
 
 async def main():
-    db = DB()
     for state in states:
+        db = DB()
         page_num = 1
         while db.is_next:
             await s_engine(page_num, state, db)
