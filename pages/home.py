@@ -1,10 +1,11 @@
-from nicegui import ui
+from nicegui import ui, app
 import asyncio
 from sqlalchemy import select, desc, delete
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from model import Saved
 import config
+import helper_page as hp
 
 ui.add_head_html(
     """<meta name="viewport" content="width=device-width, initial-scale=1.0">"""
@@ -62,6 +63,10 @@ class BuisnessPage:
         self.state = None
     
     #Backends
+
+    def logout_now(self):
+        app.storage.user['user'] = {}
+        ui.navigate.to('/login')
     
     def float_formatter(self, value):
         try:
@@ -247,6 +252,11 @@ class BuisnessPage:
                             with ui.row().classes('w-full justify-center'):
                                 self.spinner = ui.spinner(size='lg')
                                 self.spinner.visible = False
+                with ui.column().classes('col-1 w-full'):
+                    ui.button("Logout").props('unelevated outline color="black"')\
+                    .classes('rounded-lg').on_click(
+                        lambda: self.logout_now()
+                    )
 
     def filter_ui(self):
         with ui.row(wrap=False).classes('w-full justify-center my-10'):
