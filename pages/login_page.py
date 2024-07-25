@@ -20,17 +20,18 @@ class Login_Page:
                 'password': self.password
             })
             print("Logged IN")
-            app.storage.user['user'] = {'user': self.email, 'on': True, 'expires': parse("In 24 hours").isoformat()}
+            app.storage.user['user'] = self.email
+            app.storage.user['expires'] = parse("In 24 hours").isoformat()
+            #{'user': self.email, 'on': True, 'expires': parse("In 24 hours").isoformat()}
             ui.notification("Logged IN. You will be redirected shortly", close_button=True, type='positive', position='top')
             ui.navigate.to('/')
             return True
         except:
             ui.notification("Wrong credentials", close_button=True, type='negative', position='top')
-            app.storage.user['user'] = {}
             return None
         finally:
             self.spinner.visible = False
-            print(app.storage.user['user'])
+            print(app.storage.user.get('user'))
         
     def page_body(self):
         with ui.element('div').classes('grid grid-rows-4 grid-flow-col w-full h-screen'):

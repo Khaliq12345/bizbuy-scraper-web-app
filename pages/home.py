@@ -65,7 +65,8 @@ class BuisnessPage:
     #Backends
 
     def logout_now(self):
-        app.storage.user['user'] = {}
+        app.storage.user['user'] = None
+        app.storage.user['expires'] = None
         ui.navigate.to('/login')
     
     def float_formatter(self, value):
