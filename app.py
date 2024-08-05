@@ -5,7 +5,7 @@ import os
 current_dir = os.getcwd()
 sys.path.append(f'{current_dir}/pages')
 sys.path.append(f'{current_dir}/bot')
-from pages import home, login_page, helper_page as hp
+from pages import home, login_page, scraper_page, helper_page as hp
 from bot import bizscraper
 import asyncio
 
@@ -17,7 +17,6 @@ async def test_app():
 async def home_page():
     if hp.is_still_login():
         home_p = home.BuisnessPage(Buisness, 'All Buisness')
-        home_p.header()
         await home_p.main()
         with ui.footer(fixed=False).classes('bg-zinc-700'):
             ui.label("Footer")
@@ -28,7 +27,6 @@ async def home_page():
 async def saves_page():
     if hp.is_still_login():
         home_p = home.BuisnessPage(Saved, 'All Saved')
-        home_p.header()
         await home_p.main()
         with ui.footer(fixed=False).classes('bg-zinc-700'):
             ui.label("Footer")
@@ -39,7 +37,12 @@ async def saves_page():
 def the_login_page():
     lp = login_page.Login_Page()
     lp.main()
-        
+
+@ui.page('/scrape')
+def the_scraper_page():
+    sp = scraper_page.SP()
+    sp.main()
+      
 if len(sys.argv) > 1:
     asyncio.run(test_app())
 else:

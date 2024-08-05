@@ -1,80 +1,38 @@
 from nicegui import ui, app
-import asyncio
-from sqlalchemy import select, desc, delete
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
-from model import Saved
-import config
+import asyncio, math
+from sqlalchemy import select, desc, delete, asc, text
+from model import Buisness
 import helper_page as hp
-
-ui.add_head_html(
-    """<meta name="viewport" content="width=device-width, initial-scale=1.0">"""
-)
-
-excludes = [
-    "Reason for selling",
-    "Seller Financing Available",
-    "Seller Financed Payoff Timeline",
-    "Employees",
-    "Established",
-    "Profit Margin",
-    "Location",
-]
-
-mappers = [
-    {"name": "State", 'field': 'location'},
-    {"name": "Asking Price", 'field': 'asking_price'},
-    {"name": "Cash Flow", 'field': 'cash_flow'},
-    {"name": "Gross Revenue", 'field': 'gross_revenue'},
-    {"name": "Profit Margin", 'field': 'profit_margin'},
-    {"name": "Asking Multiple", "field": 'asking_multiple'},
-    {"name": "Gross Margin", "field": 'gross_margin'},
-    {"name": "COGS", 'field': "cogs"},
-    {"name": "EBITDA", 'field': "ebitda"},
-    {"name": "Inventory", 'field': "inventory"},
-    {"name": "Real Estate", "field": "real_estate"},
-    {"name": "Established", "field": 'established'},
-    {"name": "Employees", "field": "employees"},
-    {"name": "Seller Financed Payoff Timeline", "field": "seller_financed_payoff_timeline"},
-    {"name": "Seller Financing Available", 'field': 'seller_financing_available'},
-    {"name": "Reason for selling", 'field': "reason_for_selling"},
-]
-
-filters_mappers = [
-    {"name": "Asking price", "field": "asking", 'type': "number"},
-    {"name": "Cash Flow", "field": "cash_flow", 'type': "number"},
-    {"name": "Asking Multiple", "field": "asking_multiple", 'type': "number"},
-    {"name": "Order by profit margin", "field": "profit_margin", 'type': "toggle"},
-    {"name": "Order by cash flow", "field": "cash_flow", 'type': "toggle"},
-]
+from static import *
 
 class BuisnessPage:
-    def __init__(self, model, page_title):
+    def __init__(self, model: Buisness, page_title):
+        self.filter_info = None
         self.page_num = 0
+        self.total_page_num = 1
         self.model = model
         self.more_button = None
         self.page_title = page_title
         self.asking_price = None
         self.cash_flow = None
-        self.asking_multiple = None
-        self.filters = []
+        self.asking_multiple= None
         self.order_by_profit_margin = None
         self.order_by_cash_flow = None
         self.state = None
+        self.statement = select(self.model).order_by(self.model.color)
+        self.total_data = 0
     
     #Backends
-
-    def logout_now(self):
-        app.storage.user['user'] = None
-        app.storage.user['expires'] = None
-        ui.navigate.to('/login')
     
-    def float_formatter(self, value):
-        try:
-            return f'${value:,}'
-        except ValueError:
-            return value
-
+    async def get_total_page_num(self):
+        async_session = await hp.new_session()
+        async with async_session() as session:
+            self.total_page_num = await session.execute(self.statement)
+            self.total_page_num = self.total_page_num.fetchall()
+            self.total_page_num = len(self.total_page_num)
+            self.total_page_num = math.ceil(self.total_page_num/20)
+        return self.total_page_num
+    
     def convert_yes_no(self, value):
         if value == 'yes':
             value = 'no'
@@ -87,115 +45,64 @@ class BuisnessPage:
         objects_dicts = [o[0].__dict__ for o in objects]
         return objects_dicts
     
-    async def toggle_order(self, col_type: str):
-        self.filters = []
+    async def toggle_order(self, value: str):
         self.page_num = 0
         self.dialog.close()
-        if col_type == 'profit_margin':
-            self.order_by_cash_flow = None
-            self.order_by_profit_margin = self.convert_yes_no(self.order_by_profit_margin)
-        elif col_type == 'cash_flow':
-            self.order_by_profit_margin = None
-            self.order_by_cash_flow = self.convert_yes_no(self.order_by_cash_flow)
-        else:
-            pass
+        self.statement = self.statement.order_by(None)
+        if value == 'Profit Margin':
+            if self.order_by_profit_margin:
+                self.statement = self.statement.order_by(asc(self.model.profit_margin_orig))
+                self.order_by_profit_margin = False
+            else:
+                self.statement = self.statement.order_by(desc(self.model.profit_margin_orig))
+                self.order_by_profit_margin = True
+        elif value == 'Cash Flow':
+            if self.order_by_cash_flow:
+                self.statement = self.statement.order_by(asc(self.model.cash_flow))
+                self.order_by_cash_flow = False
+            else:
+                self.statement = self.statement.order_by(desc(self.model.cash_flow))
+                self.order_by_cash_flow = True
         self.body.clear()
         asyncio.create_task(self.load_page_body())
-
-    def order_by_schema(self, schema_type: str, yes_or_no: str):
-        if yes_or_no == 'yes':
-            obj = select(self.model).order_by(desc(eval(schema_type)))
-        elif yes_or_no == 'no':
-            obj = select(self.model).order_by(eval(schema_type))
-        obj = obj.offset(self.page_num*20).limit(20)
-        return obj
     
     async def load_objects(self):
-        async_session = await self.new_session()
+        async_session = await hp.new_session()
         async with async_session() as session:
-            obj = select(self.model)
-            if self.order_by_profit_margin:
-                obj = self.order_by_schema("self.model.profit_margin", self.order_by_profit_margin)
-            elif self.order_by_cash_flow:
-                obj = self.order_by_schema("self.model.cash_flow", self.order_by_cash_flow)
-            else:
-                if len(self.filters) > 0:
-                    for f in self.filters:
-                        obj = obj.filter(f)
-                        obj = obj.order_by(self.model.color).offset(self.page_num*20).limit(20)
-                else:
-                    obj = obj.order_by(self.model.color).offset(self.page_num*20).limit(20)
+            q = text("SELECT count(*) FROM orig")
+            self.total_page_num = await session.execute(q)
+            self.total_page_num = self.total_page_num.first()[0]
+            self.total_page_num = math.ceil(self.total_page_num/20)
+            obj = self.statement.offset(self.page_num*20).limit(20)
             obj_dict = await self.save_obj_as_dict(session, obj)
         return obj_dict
     
-    def load_with_filters(self):
+    async def load_with_filters(self):
         self.dialog.close()
         print("Filtering")
-        self.filters = []
         self.page_num = 0
+        self.statement = select(self.model)
         if self.asking_price:
-            self.filters.append(
-                eval(f"""self.model.asking_price <= {self.asking_price}""")
-            )
+            self.statement = self.statement.where(
+                self.model.asking_price <= self.asking_price)
         if self.cash_flow:
-            self.filters.append(
-                eval(f"""self.model.cash_flow <= {self.cash_flow}""")
-            )
+            self.statement = self.statement.where(
+                self.model.cash_flow <= self.cash_flow)
         if self.asking_multiple:
-            self.filters.append(
-                eval(f"""self.model.asking_multiple <= {self.asking_multiple}""")
-            )
+            self.statement = self.statement.where(
+                self.model.asking_multiple <= self.asking_multiple)
         if self.state:
-            self.filters.append(
-                eval(f"""self.model.location == '{self.state}'""")
-            )
-        if len(self.filters) == 0:
-            pass
-        else:
-            self.body.clear()
-            asyncio.create_task(self.load_page_body())
-
-    def validate_numbers(self, value: str|None, var: str):
-        if value == None:
-            return True
-        else:
-            try:
-                float(value)
-            except Exception as e:
-                print(e)
-                return False
-            if var == 'asking':
-                self.asking_price = float(value)
-                return True
-            elif var == 'cash_flow':
-                self.cash_flow = float(value)
-                return True
-            elif var == 'asking_multiple':
-                self.asking_multiple = float(value)
-                return True
-    
-    async def save_buisess(self, row: dict):
-        self.spinner.visible = True
-        try:
-            del row['_sa_instance_state']
-            async_session = await self.new_session()
-            async with async_session() as session:
-                s1 = Saved(**row)
-                async with session.begin():
-                    session.add(s1)
-                await session.commit()
-            ui.notification(f"{row['name']} Saved", 
-            close_button=True, timeout=3)
-        except Exception as e:
-            print(e)
-        finally:
-            self.spinner.visible = False
-            
+            self.statement = self.statement.where(
+                self.model.location.in_([self.state]))
+        print(self.statement)
+        self.body.clear()
+        asyncio.create_task(self.load_page_body())
+       
     async def remove_buisess(self, row: dict):
         self.spinner.visible = True
         try:
             del row['_sa_instance_state']
-            async_session = await self.new_session()
+            async_session = await hp.new_session()
             async with async_session() as session:
                 del_stm = delete(self.model).where(self.model.buis_id == row['buis_id'])
                 await session.execute(del_stm)
@@ -203,64 +110,13 @@ class BuisnessPage:
             ui.navigate.reload() 
         except Exception as e:
             print(e)
-            pass
         finally:
             self.spinner.visible = False
     
-    async def new_session(self):
-        engine = create_async_engine(config.db_url)
-        async_session = sessionmaker(bind=engine, class_=AsyncSession)
-        #session = Session()
-        return async_session
-
-    def get_color_name(self, row):
-        match row['color_name']:
-            case 'success':
-                return 'green-400'
-            case 'warning':
-                return 'yellow-400'
-            case 'danger':
-                return 'red-400'
-    
     #Frontends
- 
-    def header(self):
-        with ui.header().classes('bg-zinc-200'):
-            with ui.row(align_items='center').classes('w-full justify-between items-center'):
-                with ui.column().classes('col-3 w-full'):
-                    with ui.row().classes('justify-center w-full max-lg:hidden'):
-                        with ui.button_group().props('outline').classes('rounded-lg'):
-                            ui.button("Filter",
-                            on_click=lambda: self.right_drawer.toggle()).props('outline color="black"')
-                            ui.button("Show saved",
-                            on_click=lambda: ui.navigate.to('/saves')).props('outline color="black"')
-                    with ui.row().classes('justify-start w-full lg:hidden'):
-                        with ui.button(icon='menu'):
-                            with ui.menu():
-                                ui.menu_item("Filter", on_click=lambda: self.dialog.open())
-                                ui.menu_item("Show saved", on_click=lambda: ui.navigate.to('/saves'))
-                ui.space()
-                with ui.column().classes('col w-full'):
-                    with ui.row(align_items='center').classes('w-full justify-evenly'):
-                        with ui.column().classes('col'):
-                            with ui.row().classes('w-full justify-center lg:text-4xl text-2xl font-serif'):
-                                with ui.link(target='/').classes('no-underline'):
-                                    ui.label('DATA VIZ').classes('text-dark')
-                        with ui.column().classes('col'):
-                            with ui.row().classes('w-full justify-center lg:text-4xl text-2xl font-serif'):
-                                ui.label(self.page_title).classes('text-dark text-center')
-                        with ui.column().classes('col-1'):
-                            with ui.row().classes('w-full justify-center'):
-                                self.spinner = ui.spinner(size='lg')
-                                self.spinner.visible = False
-                with ui.column().classes('col-1 w-full'):
-                    ui.button("Logout").props('unelevated outline color="black"')\
-                    .classes('rounded-lg').on_click(
-                        lambda: self.logout_now()
-                    )
 
     def filter_ui(self):
-        with ui.row(wrap=False).classes('w-full justify-center my-10'):
+        with ui.column(wrap=False).classes('w-full justify-center my-10') as self.filter_col:
             with ui.column():
                 with ui.list().props('bordered separator'):
                     ui.item_label('Filters').props('header').classes('text-bold text-h6 flex justify-center')
@@ -269,97 +125,73 @@ class BuisnessPage:
                         if fm['type'] == 'number':      
                             with ui.item():
                                 with ui.item_section():
-                                    ui.number(fm['name'], min=1,
-                                    validation=lambda value: "Provide proper number" if not 
-                                    self.validate_numbers(value, fm['field']) else None).props('filled')
-                        elif fm['type'] == 'toggle':
-                            with ui.item():
-                                with ui.item_section():
-                                    ui.button(fm['name'], color='zinc-700', icon='sort',
-                                    on_click=lambda: self.toggle_order(fm['field'])).props('outline')
+                                    ui.number(fm['name'], min=1).props('filled').bind_value(
+                                        self, fm['field']
+                                    )
                     with ui.item():
                         with ui.item_section():
                             ui.select(
                                 options=["Texas", "New Jersey", "Colorado", 'New York'],
-                                label="Select State",
+                                label="Select State", clearable=True,
                             ).bind_value(self, 'state')
                             
                 with ui.row().classes('w-full justify-center'):
                     ui.button("Submit", icon='start',
                     color='zinc-700 text-white', on_click=self.load_with_filters).props('flat')
 
+    def toggle_ui(self):
+        with self.filter_col:
+            with ui.row(wrap=False, align_items='center').classes('w-full justify-around'):
+                ui.icon('sort')
+                for x in ["Profit Margin", "Cash Flow"]:
+                    ui.button(x).on_click(
+                        lambda b=x: self.toggle_order(b)
+                    ).props('unelevated bg-secondary')
+
     def small_screen_dialog(self):
         with ui.dialog() as self.dialog, ui.card().classes('bg-zinc-300'):
             self.filter_ui()
+            self.toggle_ui()
 
     def large_screen_drawer(self):
         with ui.left_drawer().classes('bg-zinc-300 md:visible') as self.right_drawer:
             self.filter_ui()
-
-    def make_a_business_card(self, row):
-        for mapper in mappers:
-            with ui.item():
-                with ui.item_section():
-                    with ui.row(align_items='center').classes('w-full justify-between'):
-                        if mapper['field'] == 'reason_for_selling':
-                            ui.item_label(mapper['name'])
-                            with ui.button('Reason for selling',
-                                color='zinc-700').props('flat').classes('text-white'):
-                                with ui.menu():
-                                    with ui.element('p').classes('p-3'):
-                                        ui.label(row[mapper['field']])
-                        else:
-                            ui.item_label(mapper['name'])
-                            if mapper['name'] in excludes:
-                                ui.item_label(row[mapper['field']])
-                            else:
-                                ui.item_label(self.float_formatter(row[mapper['field']]))
-        ui.separator().classes('my-2')
-        with ui.element('div').classes('flex justify-around mb-2'):
-            ui.button("Save Buisness", color='secondary', icon='save').props('outline').on_click(
-                lambda: self.save_buisess(row)
-            )
-            if self.page_title == 'All Saved':
-                ui.button("Remove Buisness", color='red', icon='delete').props('outline').on_click(
-                    lambda: self.remove_buisess(row)
-                )
+            self.toggle_ui()
          
-    def load_cards(self, objects):
-        with self.body:
-            with ui.row().classes('justify-center grid grid-cols-2 max-lg:grid-cols-1 md:container md:mx-auto'):
-                for idx, row in enumerate(objects):
-                    buis_color = self.get_color_name(row)
-                    with ui.column().classes(f'border-{buis_color} mb-10'):
-                        with ui.row(align_items='stretch').classes('w-full justify-center'):
-                            with ui.list().props('separator').classes(f'w-full ring-4 ring-{buis_color} rounded-lg'):
-                                with ui.link(target=row['buis_link'], new_tab=True).classes('no-underline'):
-                                    ui.item_label(row['name']).props('header').classes(f'text-bold text-black bg-{buis_color}')
-                                ui.separator()
-                                self.make_a_business_card(row)
-
     async def load_page_body(self):
         self.spinner.visible = True
+        await self.get_total_page_num()
+        self.pagination_ui()
         objects = await self.load_objects()
         if len(objects) > 0:
-            self.load_cards(objects)
-            self.more_button.enable()
-        else:
-            if self.more_button:
-                self.more_button.disable()
+            hp.load_cards(self, objects)
+        self.filter_info = f'''
+        Asking Price <= {self.asking_price} |
+        Cash Flow <= {self.cash_flow} |
+        Asking Multiple <= {self.asking_multiple} |
+        State: {self.state}'''
         self.spinner.visible = False
         
     async def handle_pagination(self):
-        self.page_num += 1
+        self.body.clear()
         await self.load_page_body()
 
+    def pagination_ui(self):
+        self.pagination_col.clear()
+        with self.pagination_col:
+            ui.pagination(0, self.total_page_num-1, direction_links=True).on_value_change(
+                self.handle_pagination
+            ).bind_value(self, 'page_num').props('boundary-links :max-pages="5"')
+
     async def main(self):
+        hp.header(self)
+        with ui.element('div').classes('justify-center w-full font-mono text-bold'):
+            ui.label("Filters:").bind_text(self, 'filter_info')
         self.body = ui.element('body').classes('font-mono')
         self.large_screen_drawer()
         self.small_screen_dialog()
-        with ui.row().classes('justify-center w-full'):
-            self.more_button = ui.button("Load more", 
-                on_click=lambda: self.handle_pagination()).classes('sticky bottom-0 flat')
-            
+        self.pagination_col = ui.element('div').classes('flex flex-row justify-center w-full')
+        self.pagination_ui()
         asyncio.create_task(self.load_page_body())
 
        

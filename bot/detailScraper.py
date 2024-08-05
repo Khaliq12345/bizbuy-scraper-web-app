@@ -92,7 +92,9 @@ def parse_buis_detail_page(soup: HTMLParser, url: str, state: str):
     return b_data
 
 def split_urls_into_batches(list_of_urls: list):
-    splits = np.array_split(list_of_urls, math.ceil(len(list_of_urls)/2))
+    split_num = math.ceil(len(list_of_urls)/2)
+    split_num = split_num if split_num > 0 else 1
+    splits = np.array_split(list_of_urls, split_num)
     return splits
 
 async def log_response(response: httpx.Response):
