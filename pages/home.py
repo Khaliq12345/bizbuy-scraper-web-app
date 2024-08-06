@@ -155,8 +155,8 @@ class BuisnessPage:
          
     async def load_page_body(self):
         self.spinner.visible = True
-        await self.get_total_page_num()
-        self.pagination_ui()
+        #await self.get_total_page_num()
+        #self.pagination_ui()
         objects = await self.load_objects()
         if len(objects) > 0:
             hp.load_cards(self, objects)
@@ -174,7 +174,7 @@ class BuisnessPage:
     def pagination_ui(self):
         self.pagination_col.clear()
         with self.pagination_col:
-            ui.pagination(0, self.total_page_num-1, direction_links=True).on_value_change(
+            ui.pagination(0, 280, direction_links=True).on_value_change(
                 self.handle_pagination
             ).bind_value(self, 'page_num').props('boundary-links :max-pages="5"')
 
