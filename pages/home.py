@@ -27,10 +27,11 @@ class BuisnessPage:
     async def get_total_page_num(self):
         async_session = await hp.new_session()
         async with async_session() as session:
-            self.total_page_num = await session.execute(self.statement)
-            self.total_page_num = self.total_page_num.fetchall()
-            self.total_page_num = len(self.total_page_num)
-            self.total_page_num = math.ceil(self.total_page_num/20)
+            num = await session.execute(self.statement)
+            num = num.fetchall()
+            num = len(num)
+            num = math.ceil(num/20)
+            self.set_total_page_num(num)
         return self.total_page_num
     
     def convert_yes_no(self, value):
@@ -155,8 +156,8 @@ class BuisnessPage:
          
     async def load_page_body(self):
         self.spinner.visible = True
-        #await self.get_total_page_num()
-        #self.pagination_ui()
+        await self.get_total_page_num()
+        #self.pagination_ui.refresh()
         objects = await self.load_objects()
         if len(objects) > 0:
             hp.load_cards(self, objects)
@@ -170,18 +171,20 @@ class BuisnessPage:
     async def handle_pagination(self):
         self.body.clear()
         await self.load_page_body()
-
+        
+    @ui.refreshable
     def pagination_ui(self):
+        self.total_page_num, self.set_total_page_num = ui.state(1)
         self.pagination_col.clear()
         with self.pagination_col:
-            ui.pagination(0, 280, direction_links=True).on_value_change(
+            ui.pagination(0, self.total_page_num-1, direction_links=True).on_value_change(
                 self.handle_pagination
             ).bind_value(self, 'page_num').props('boundary-links :max-pages="5"')
 
     async def main(self):
         hp.header(self)
         with ui.element('div').classes('justify-center w-full font-mono text-bold'):
-            ui.label("Filters:").bind_text(self, 'filter_info')
+            ui.label("Filters:").bind_text(self, 'filter_info').classes('text-center text-pretty')
         self.body = ui.element('body').classes('font-mono')
         self.large_screen_drawer()
         self.small_screen_dialog()
