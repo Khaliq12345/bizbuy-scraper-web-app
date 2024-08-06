@@ -9,26 +9,35 @@ class SP:
     def __init__(self):
         self.page_title = "Scraper"
         self.p_urls_list = []
-        
+        self.color = None        
     #Backend-----------------------------------------
     def validate_urls(self):
         self.p_urls_list = [p.strip() for p in self.p_urls_list if len(p) > 0]
         
     async def start_scraper(self):
-        self.body.clear()
-        db = SP_DB()
-        db.buis_infos = []
-        self.validate_urls()
-        self.spinner.visible = True
-        await detailScraper.engine(self.p_urls_list, 'Colorado', db)
-        hp.load_cards(self, db.buis_infos)
-        self.spinner.visible = False
-        
+        try:
+            self.body.clear()
+            db = SP_DB()
+            db.buis_infos = []
+            self.validate_urls()
+            self.spinner.visible = True
+            await detailScraper.engine(self.p_urls_list, 'Colorado', db)
+            hp.load_cards(self, db.buis_infos)
+        except Exception as e:
+            with self.body:
+                ui.notification(
+                    f"""Error: {e} """,
+                    multi_line=True,
+                    timeout=10, type='negative'
+                )
+        finally:
+            self.spinner.visible = False
+            
     #Frontend --------------------------------------
     def main(self):
         hp.header(self)
-        with ui.element('div').classes('grid grid-cols-6 w-full'):
-            with ui.column().classes('col-span-4 col-start-2 outlined'):
+        with ui.element('div').classes('grid grid-cols-1 lg:grid-cols-6 w-full'):
+            with ui.column().classes('lg:col-span-4 lg:col-start-2 outlined'):
                 with ui.row().classes('w-full justify-center'):
                     ui.select([], with_input=True, clearable=True, new_value_mode='add-unique', 
                     multiple=True, label='Paste url(s) here')\

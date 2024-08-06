@@ -49,20 +49,14 @@ class BuisnessPage:
         self.page_num = 0
         self.dialog.close()
         self.statement = self.statement.order_by(None)
-        if value == 'Profit Margin':
-            if self.order_by_profit_margin:
-                self.statement = self.statement.order_by(asc(self.model.profit_margin_orig))
-                self.order_by_profit_margin = False
-            else:
-                self.statement = self.statement.order_by(desc(self.model.profit_margin_orig))
-                self.order_by_profit_margin = True
-        elif value == 'Cash Flow':
-            if self.order_by_cash_flow:
-                self.statement = self.statement.order_by(asc(self.model.cash_flow))
-                self.order_by_cash_flow = False
-            else:
-                self.statement = self.statement.order_by(desc(self.model.cash_flow))
-                self.order_by_cash_flow = True
+        if value == 'Desc Profit Margin':
+            self.statement = self.statement.order_by(desc(self.model.profit_margin_orig))
+        elif value == 'Asc Profit Margin':
+            self.statement = self.statement.order_by(asc(self.model.profit_margin_orig))
+        elif value == 'Desc Cash Flow':
+            self.statement = self.statement.order_by(desc(self.model.cash_flow))
+        elif value == 'Asc Cash Flow':
+            self.statement = self.statement.order_by(asc(self.model.cash_flow))
         self.body.clear()
         asyncio.create_task(self.load_page_body())
     
@@ -141,12 +135,13 @@ class BuisnessPage:
 
     def toggle_ui(self):
         with self.filter_col:
-            with ui.row(wrap=False, align_items='center').classes('w-full justify-around'):
-                ui.icon('sort')
-                for x in ["Profit Margin", "Cash Flow"]:
-                    ui.button(x).on_click(
-                        lambda b=x: self.toggle_order(b)
-                    ).props('unelevated bg-secondary')
+            ui.icon('sort').classes('w-full justify-center')
+            with ui.row(wrap=False, align_items='center').classes('w-full justify-center'):
+                ui.toggle(
+                ["Asc Profit Margin", "Desc Profit Margin", 
+                'Asc Cash Flow', 'Desc Cash Flow'], clearable=True)\
+                .classes('flex flex-col outline').props('flat')\
+                .on_value_change(lambda e: self.toggle_order(e.value))
 
     def small_screen_dialog(self):
         with ui.dialog() as self.dialog, ui.card().classes('bg-zinc-300'):

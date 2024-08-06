@@ -109,8 +109,8 @@ def load_cards(page_obj, objects):
           
 def header(page_obj):
     with ui.header().classes('bg-zinc-200'):
-        with ui.row(align_items='center').classes('w-full justify-between items-center'):
-            with ui.column().classes('col-3 w-full'):
+        with ui.row().classes('w-full items-center grid grid-cols-5'):
+            with ui.column().classes('w-full'):
                 with ui.row().classes('justify-center w-full max-lg:hidden'):
                     with ui.button_group().props('outline').classes('rounded-lg'):
                         if page_obj.page_title != 'Scraper':
@@ -123,13 +123,14 @@ def header(page_obj):
                         
                 with ui.row().classes('justify-start w-full lg:hidden'):
                     with ui.button(icon='menu'):
-                        with ui.menu():
+                        with ui.menu().props('transition-show="flip-right" transition-hide="flip-left"'):
                             if page_obj.page_title != 'Scraper':
                                 ui.menu_item("Filter", on_click=lambda: page_obj.dialog.open())
                             ui.menu_item("Show saved", on_click=lambda: ui.navigate.to('/saves'))
                             ui.menu_item("Scraper", on_click=lambda: ui.navigate.to('/scrape'))
-            ui.space()      
-            with ui.column().classes('col w-full'):
+                            ui.menu_item("Logout", on_click=lambda: logout_now())
+               
+            with ui.column().classes('w-full col-span-4 col-start-2'):
                 with ui.row(align_items='center').classes('w-full justify-evenly'):
                     with ui.column().classes('col'):
                         with ui.row().classes('w-full justify-center lg:text-4xl text-2xl font-serif'):
@@ -142,8 +143,8 @@ def header(page_obj):
                         with ui.row().classes('w-full justify-center'):
                             page_obj.spinner = ui.spinner(size='lg')
                             page_obj.spinner.visible = False
-            with ui.column().classes('col-1 w-full'):
-                ui.button("Logout").props('unelevated outline color="black"')\
-                .classes('rounded-lg').on_click(
-                    lambda: logout_now()
-                )
+                    with ui.column().classes('col-1 w-full max-lg:hidden'):
+                        ui.button("Logout").props('unelevated outline color="black"')\
+                        .classes('rounded-lg').on_click(
+                            lambda: logout_now()
+                        )
