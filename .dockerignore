@@ -1,0 +1,6 @@
+*.ipynb
+*.csv
+__pycache__
+db.sqlite3
+config.py
+.nicegui
