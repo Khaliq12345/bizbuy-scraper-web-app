@@ -52,15 +52,23 @@ def get_all_links(soup: HTMLParser):
 async def s_engine(page_num: int, state: str, db):
     print(f'Page: {page_num} | State: {state}')
     payload = { 'api_key': config.scraper_api, 'url': f'https://www.bizbuysell.com/{state}-businesses-for-sale/{page_num}' }
-    async with httpx.AsyncClient(timeout=None) as client:
-        r = await client.get('https://api.scraperapi.com/', params=payload, timeout=None)
-        soup = HTMLParser(r.text)
-        if not soup.css_matches('.bbsPager_next.ng-star-inserted'):
-            db.is_next = False
-        buis_links = get_all_links(soup)
-        print(f'Total links: {len(buis_links)}')
-        await detailScraper.engine(buis_links, state, db)
-
+    try:
+        async with httpx.AsyncClient(timeout=None) as client:
+            r = await client.get('https://api.scraperapi.com/', params=payload, timeout=None)
+            soup = HTMLParser(r.text)
+            if not soup.css_matches('.bbsPager_next.ng-star-inserted'):
+                db.is_next = False
+            buis_links = get_all_links(soup)
+            print(f'Total links: {len(buis_links)}')
+            await detailScraper.engine(buis_links, state, db)
+    except Exception as e:
+        with open('logs.txt', '+a') as f:
+            f.write(f'''
+            Error: {e}
+            f'https://www.bizbuysell.com/{state}-businesses-for-sale/{page_num}'
+            ''')
+        db.is_next = False
+        
 async def main():
     for state in states:
         db = DB()

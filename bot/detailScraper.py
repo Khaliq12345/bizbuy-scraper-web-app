@@ -117,8 +117,11 @@ async def make_request(url: str, state, db):
                 info = parse_buis_detail_page(soup, url, state)
                 db.buis_infos.append(info)
     except Exception as e:
-        print(e)
-        pass
+        with open('logs.txt', '+a') as f:
+            f.write(f'''
+            Error: {e}
+            Url: {url}
+            ''')
         
 async def engine(urls: list, state, db):
     batches = split_urls_into_batches(urls)
