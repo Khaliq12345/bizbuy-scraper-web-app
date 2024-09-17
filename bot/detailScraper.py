@@ -16,14 +16,17 @@ def division_error(a, b):
     except ZeroDivisionError:
         return 0
 
+
 def create_uuid_from_string(val: str):
     hex_string = hashlib.md5(val.encode("UTF-8")).hexdigest()
     return uuid.UUID(hex=hex_string)
+
 
 def divide_chunks(l, n): 
     # looping till length l 
     for i in range(0, len(l), n):  
         yield l[i:i + n] 
+
 
 def get_spec_info(specs: list[HTMLParser], info: str, default):
     for spec in specs:
@@ -35,6 +38,7 @@ def get_spec_info(specs: list[HTMLParser], info: str, default):
                 return value if value != 'N/A' else 0
     return default
 
+
 def get_spec_from_dd(dds: list[HTMLParser], dts: list[HTMLParser], info:str, default):
     for idx, dt in enumerate(dts):
         if dt.text() == info:
@@ -44,6 +48,7 @@ def get_spec_from_dd(dds: list[HTMLParser], dts: list[HTMLParser], info:str, def
             except:
                 return default
     return default
+
 
 def parse_buis_detail_page(soup: HTMLParser, url: str, state: str):
     specs = soup.css('p.m-listing-row')
@@ -91,19 +96,24 @@ def parse_buis_detail_page(soup: HTMLParser, url: str, state: str):
     b_data = json.loads(Buisness(**info).model_dump_json())
     return b_data
 
+
 def split_urls_into_batches(list_of_urls: list):
     split_num = math.ceil(len(list_of_urls)/15)
     split_num = split_num if split_num > 0 else 1
     splits = np.array_split(list_of_urls, split_num)
     return splits
 
+
 async def log_response(response: httpx.Response):
     print(f'Response url: {response.url} | Status: {response.status_code}')
+    
     
 async def log_requests(resquest: httpx.Request):
     print(f'Request url: {resquest.url}')
     
+    
 logger = {"response": [log_response], "request": [log_requests]}
+
 
 async def make_request(url: str, state, db):
     try:
@@ -122,6 +132,7 @@ async def make_request(url: str, state, db):
             Error: {e}
             Url: {url}
             ''')
+        
         
 async def engine(urls: list, state, db):
     batches = split_urls_into_batches(urls)

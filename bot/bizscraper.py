@@ -13,10 +13,12 @@ states = [
     'texas'
 ]
 
+
 class DB:
     buis_links = []
     buis_infos = []
     is_next = True
+
 
 #save data------------
 def save_data(buis_infos):
@@ -33,6 +35,7 @@ def save_data(buis_infos):
             print("Save DONE!")
     except Exception as e:
         print(e)
+     
         
 #making requests------------------------
 def get_all_links(soup: HTMLParser):
@@ -48,6 +51,7 @@ def get_all_links(soup: HTMLParser):
         except:
             pass
     return b_links
+
 
 async def s_engine(page_num: int, state: str, db):
     print(f'Page: {page_num} | State: {state}')
@@ -68,6 +72,7 @@ async def s_engine(page_num: int, state: str, db):
             f'https://www.bizbuysell.com/{state}-businesses-for-sale/{page_num}'
             ''')
         db.is_next = False
+     
         
 async def main():
     for state in states:
@@ -78,6 +83,7 @@ async def main():
             page_num += 1
 
     save_data(db.buis_infos)
+  
         
 if __name__ == '__main__':
     asyncio.run(main())
