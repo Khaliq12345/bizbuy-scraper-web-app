@@ -8,9 +8,9 @@ import asyncio
 
 states = [
     'new-jersey',
-    'colorado',
-    'new-york',
-    'texas'
+    # 'colorado',
+    # 'new-york',
+    # 'texas'
 ]
 
 
@@ -81,6 +81,7 @@ async def main():
         while db.is_next:
             await s_engine(page_num, state, db)
             page_num += 1
+            break #to change
 
     save_data(db.buis_infos)
   
