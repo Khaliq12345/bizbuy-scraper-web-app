@@ -1,33 +1,44 @@
 from nicegui import ui, app
-from supabase import create_client, Client
+#from supabase import create_client, Client
 import config
 from dateparser import parse
 import helper_page as hp
 
-supabase: Client = create_client(config.supabase_url, config.supabase_key)
+#supabase: Client = create_client(config.supabase_url, config.supabase_key)
 
 
 class Login_Page:
     def __init__(self) -> None:
-        self.email: str = None
+        self.username: str = None
         self.password: str = None
     
     def login_backend(self):
         self.spinner.visible = True
         try:
-            supabase.auth.sign_in_with_password({
-                'email': self.email,
-                'password': self.password
-            })
-            print("Logged IN")
-            app.storage.user['user'] = self.email
-            app.storage.user['expires'] = parse("In 24 hours").isoformat()
-            #{'user': self.email, 'on': True, 'expires': parse("In 24 hours").isoformat()}
-            ui.notification("Logged IN. You will be redirected shortly", close_button=True, type='positive', position='top')
-            ui.navigate.to('/')
-            return True
+            # supabase.auth.sign_in_with_password({
+            #     'email': self.username,
+            #     'password': self.password
+            # })
+            if (self.username == config.username) and (self.password == config.password): 
+                print("Logged IN")
+                app.storage.user['user'] = self.username
+                app.storage.user['expires'] = parse("In 24 hours").isoformat()
+                #{'user': self.username, 'on': True, 'expires': parse("In 24 hours").isoformat()}
+                ui.notification(
+                    "Logged IN. You will be redirected shortly", 
+                    close_button=True, 
+                    type='positive', 
+                    position='top'
+                )
+                ui.navigate.to('/')
+                return True
         except:
-            ui.notification("Wrong credentials", close_button=True, type='negative', position='top')
+            ui.notification(
+                "Wrong credentials", 
+                close_button=True, 
+                type='negative', 
+                position='top'
+            )
             return None
         finally:
             self.spinner.visible = False
