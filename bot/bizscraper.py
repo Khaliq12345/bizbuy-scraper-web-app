@@ -8,9 +8,9 @@ import asyncio
 
 states = [
     'new-jersey',
-    # 'colorado',
-    # 'new-york',
-    # 'texas'
+    'colorado',
+    'new-york',
+    'texas'
 ]
 
 
@@ -62,7 +62,7 @@ async def s_engine(page_num: int, state: str, db):
             soup = HTMLParser(r.text)
             if not soup.css_matches('.bbsPager_next.ng-star-inserted'):
                 db.is_next = False
-            buis_links = get_all_links(soup)[:5]
+            buis_links = get_all_links(soup)
             print(f'Total links: {len(buis_links)}')
             await detailScraper.engine(buis_links, state, db)
     except Exception as e:
@@ -81,7 +81,6 @@ async def main():
         while db.is_next:
             await s_engine(page_num, state, db)
             page_num += 1
-            break #to change
 
     save_data(db.buis_infos)
   
